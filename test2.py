@@ -1,53 +1,85 @@
-# Import necessary libraries
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
 
-# Load the wine dataset
+# Load the dataset
+file_path = 'wine\wine.data'
+wine_df = pd.read_csv(file_path, header=None)
+
+# Define column names based on the standard Wine dataset attributes
 column_names = [
-    'Class', 'Alcohol', 'Malic_Acid', 'Ash', 'Alkalinity_of_Ash', 'Magnesium',
-    'Total_Phenols', 'Flavanoids', 'Nonflavanoid_Phenols', 'Proanthocyanins',
-    'Color_Intensity', 'Hue', 'OD280/OD315', 'Proline'
+    "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash", "Magnesium",
+    "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols", "Proanthocyanins",
+    "Color_Intensity", "Hue", "OD280/OD315", "Proline"
 ]
+wine_df.columns = column_names
 
-# Replace 'path_to_wine_data' with the actual file path of wine.data
-wine_data = pd.read_csv('wine\wine.data', header=None, names=column_names)
+# Data Exploration
+print("Dataset Overview:")
+print(wine_df.info())
+print("Summary Statistics:")
+print(wine_df.describe())
 
-# Split the dataset into features and target
-X = wine_data.drop("Class", axis=1)  # Features
-y = wine_data["Class"]              # Target
+# Check for missing values
+print("Missing Values:")
+print(wine_df.isnull().sum())
 
-# Split into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+# Separate features and target
+X = wine_df.drop("Class", axis=1)
+y = wine_df["Class"]
 
-# Normalize the features
+# Normalize the data
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+X_scaled = scaler.fit_transform(X)
+
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
 
 # Train a Random Forest Classifier
-model = RandomForestClassifier(random_state=42, n_estimators=100)
-model.fit(X_train_scaled, y_train)
-
-# Make predictions
-y_pred = model.predict(X_test_scaled)
+rf_model = RandomForestClassifier(random_state=42)
+rf_model.fit(X_train, y_train)
 
 # Evaluate the model
-accuracy = accuracy_score(y_test, y_pred)
-conf_matrix = confusion_matrix(y_test, y_pred)
-class_report = classification_report(y_test, y_pred)
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-# Display the first 10 rows in tabular form
-print(wine_data.head(10))
-# Print results
-output_path = 'wine_dataset.xlsx'
-wine_data.to_excel(output_path, index=False)
+y_pred = rf_model.predict(X_test)
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
 
-print(f"Dataset saved as {output_path}")
-print("Accuracy:", accuracy)
-print("\nConfusion Matrix:\n", conf_matrix)
-print("\nClassification Report:\n", class_report)
+# Confusion Matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+# Visualize Confusion Matrix
+plt.figure(figsize=(6, 6))
+plt.imshow(conf_matrix, cmap="Blues")
+plt.title("Confusion Matrix")
+plt.colorbar()
+plt.xticks(ticks=np.arange(len(np.unique(y))), labels=np.unique(y))
+plt.yticks(ticks=np.arange(len(np.unique(y))), labels=np.unique(y))
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+
+# Annotate the confusion matrix
+for i in range(conf_matrix.shape[0]):
+    for j in range(conf_matrix.shape[1]):
+        plt.text(j, i, conf_matrix[i, j], ha="center", va="center", color="red")
+
+plt.show()
+
+# Feature Importance Visualization
+importances = rf_model.feature_importances_
+features = X.columns
+sorted_indices = np.argsort(importances)[::-1]
+
+plt.figure(figsize=(10, 6))
+plt.bar(range(len(features)), importances[sorted_indices], align="center")
+plt.xticks(range(len(features)), [features[i] for i in sorted_indices], rotation=45, ha="right")
+plt.title("Feature Importance")
+plt.xlabel("Features")
+plt.ylabel("Importance")
+plt.tight_layout()
+plt.show()
