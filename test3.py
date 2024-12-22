@@ -18,7 +18,7 @@ column_names = [
     "Magnesium", "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
     "Proanthocyanins", "Color_Intensity", "Hue", "OD280/OD315", "Proline"
 ]
-data = pd.read_csv("wine\wine.data", header=None, names=column_names)
+data = pd.read_csv("wine/wine.data", header=None, names=column_names)
 
 # Preprocessing
 X = data.drop(columns=['Class'])
@@ -51,8 +51,7 @@ for name, model in models.items():
 
 # Accuracy Comparison
 names, acc = zip(*accuracies)
-plt.figure(figsize=(10, 5))
-sns.barplot(x=list(names), y=list(acc), palette="viridis")
+sns.barplot(x=list(names), y=list(acc), palette=sns.color_palette("viridis", len(names)))
 plt.title("Model Accuracy Comparison")
 plt.ylabel("Accuracy")
 plt.xlabel("Model")
@@ -62,7 +61,8 @@ plt.show()
 # Text Analysis
 # Generate synthetic textual descriptions
 texts = [
-    f"Alcohol: {row['Alcohol']:.1f}, Acid: {row['Malic_Acid']:.1f}, Phenols: {row['Total_Phenols']:.1f}" 
+    f"Alcohol: {row['Alcohol']:.1f}, Malic Acid: {row['Malic_Acid']:.1f}, Phenols: {row['Total_Phenols']:.1f}, "
+    f"Color Intensity: {row['Color_Intensity']:.1f}"
     for _, row in data.iterrows()
 ]
 
@@ -72,12 +72,14 @@ text_X_train, text_X_test, text_y_train, text_y_test = train_test_split(
     text_vectors, y, test_size=0.3, random_state=42
 )
 
-text_model = LogisticRegression(max_iter=1000, random_state=42)
+# Logistic Regression for Text Analysis
+text_model = LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs')
 text_model.fit(text_X_train, text_y_train)
 text_y_pred = text_model.predict(text_X_test)
 
+# Evaluation
 print("Text Analysis Accuracy:", accuracy_score(text_y_test, text_y_pred))
-print("Classification Report:\n", classification_report(text_y_test, text_y_pred))
+print("Classification Report:\n", classification_report(text_y_test, text_y_pred, zero_division=0))
 
 # Confusion Matrix for Text Analysis
 disp = ConfusionMatrixDisplay.from_estimator(text_model, text_X_test, text_y_test, cmap="viridis")
@@ -86,7 +88,9 @@ plt.show()
 
 # Feature Importance Visualization (Top 10 Features)
 feature_names = vectorizer.get_feature_names_out()
-coefficients = text_model.coef_[0]
+
+# Aggregate coefficients across classes
+coefficients = np.mean(text_model.coef_, axis=0)
 top_features = sorted(zip(coefficients, feature_names), key=lambda x: abs(x[0]), reverse=True)[:10]
 weights, features = zip(*top_features)
 
