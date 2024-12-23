@@ -51,12 +51,19 @@ for name, model in models.items():
 
 # Accuracy Comparison
 names, acc = zip(*accuracies)
-sns.barplot(x=list(names), y=list(acc), palette=sns.color_palette("viridis", len(names)))
+plt.figure(figsize=(10, 6))
+ax = sns.barplot(x=list(names), y=list(acc), palette=sns.color_palette("viridis", len(names)))
 plt.title("Model Accuracy Comparison")
 plt.ylabel("Accuracy")
 plt.xlabel("Model")
 plt.ylim(0, 1)
+
+# Annotate each bar with its accuracy value
+for i, v in enumerate(acc):
+    ax.text(i, v + 0.02, f"{v:.2f}", ha='center', fontsize=10, fontweight='bold')
+
 plt.show()
+
 
 # Text Analysis
 # Generate synthetic textual descriptions
@@ -89,14 +96,20 @@ plt.show()
 # Feature Importance Visualization (Top 10 Features)
 feature_names = vectorizer.get_feature_names_out()
 
-# Aggregate coefficients across classes
-coefficients = np.mean(text_model.coef_, axis=0)
-top_features = sorted(zip(coefficients, feature_names), key=lambda x: abs(x[0]), reverse=True)[:10]
+# Text Analysis Feature Importance Visualization (Top 10 Aggregate Coefficients with Exact Values)
+coefficients_mean = np.mean(text_model.coef_, axis=0)  # Aggregate coefficients across classes
+top_features = sorted(zip(coefficients_mean, feature_names), key=lambda x: abs(x[0]), reverse=True)[:10]
 weights, features = zip(*top_features)
 
 plt.figure(figsize=(10, 6))
-sns.barplot(x=list(weights), y=list(features), palette="mako")
-plt.title("Top 10 Features - Logistic Regression (Text Analysis)")
-plt.xlabel("Feature Coefficient")
+ax = sns.barplot(x=list(weights), y=list(features), palette="mako")
+
+# Annotate each bar with its coefficient value
+for i, v in enumerate(weights):
+    ax.text(v + (0.01 if v > 0 else -0.01), i, f"{v:.3f}", va='center', ha='left' if v > 0 else 'right', 
+            fontsize=10, fontweight='bold')
+
+plt.title("Top 10 Aggregate Features - Logistic Regression (Text Analysis)")
+plt.xlabel("Aggregate Feature Coefficient")
 plt.ylabel("Feature")
 plt.show()
