@@ -40,10 +40,21 @@ models = {
 
 accuracies = []
 for name, model in models.items():
+     # Fit the model
     model.fit(X_train_scaled, y_train)
-    y_pred = model.predict(X_test_scaled)
-    accuracies.append((name, accuracy_score(y_test, y_pred)))
-
+    
+    # Predict on both training and testing sets
+    y_train_pred = model.predict(X_train_scaled)
+    y_test_pred = model.predict(X_test_scaled)
+    
+    # Accuracy calculation
+    test_accuracy = accuracy_score(y_test, y_test_pred)
+    accuracies.append((name, test_accuracy))
+    print(f"=== Classification Report for {name} (Training Data) ===")
+    print(classification_report(y_train, y_train_pred, zero_division=0))
+    print(f"=== Classification Report for {name} (Testing Data) ===")
+    print(classification_report(y_test, y_test_pred, zero_division=0))
+    print("-" * 80)
     # Confusion Matrix
     ConfusionMatrixDisplay.from_estimator(model, X_test_scaled, y_test, cmap="viridis")
     plt.title(f"Confusion Matrix - {name}")
