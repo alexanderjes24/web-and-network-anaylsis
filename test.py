@@ -1,94 +1,103 @@
 import pandas as pd
 import numpy as np
-import time
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import (
-    accuracy_score, confusion_matrix, classification_report, roc_auc_score, roc_curve
-)
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
 
-# Load the dataset
+# Load dataset
 column_names = [
-    'Class', 'Alcohol', 'Malic_Acid', 'Ash', 'Alkalinity_of_Ash', 'Magnesium',
-    'Total_Phenols', 'Flavanoids', 'Nonflavanoid_Phenols', 'Proanthocyanins',
-    'Color_Intensity', 'Hue', 'OD280/OD315', 'Proline'
+    "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash",
+    "Magnesium", "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
+    "Proanthocyanins", "Color_Intensity", "Hue", "OD280/OD315", "Proline"
 ]
-wine_data = pd.read_csv('wine\wine.data', header=None, names=column_names)
+data = pd.read_csv("wine/wine.data", header=None, names=column_names)
 
-# Split data into features and target
-X = wine_data.drop('Class', axis=1)
-y = wine_data['Class']
+# Generate synthetic textual descriptions
+texts = [
+    f"Alcohol: {row['Alcohol']:.1f}, Malic Acid: {row['Malic_Acid']:.1f}, Phenols: {row['Total_Phenols']:.1f}, "
+    f"Color Intensity: {row['Color_Intensity']:.1f}"
+    for _, row in data.iterrows()
+]
 
-# Standardize the features
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+# TF-IDF Vectorization
+vectorizer = TfidfVectorizer()
+text_vectors = vectorizer.fit_transform(texts)
 
-# Split into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+# Train-test split for text data
+text_X_train, text_X_test, text_y_train, text_y_test = train_test_split(
+    text_vectors, data['Class'], test_size=0.3, random_state=42
+)
 
-# Initialize models
-models = {
-    "Random Forest": RandomForestClassifier(random_state=42),
-    "Gradient Boosting": GradientBoostingClassifier(random_state=42),
-    "Logistic Regression": LogisticRegression(max_iter=2000)
+# Define Models for Text Analysis
+text_models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
+    "Decision Tree": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
+    "SVM": SVC(random_state=42),
+    "kNN": KNeighborsClassifier()
 }
 
-# Metrics storage
-results = {}
-
-# Train and evaluate each model
-for model_name, model in models.items():
-    start_time = time.time()
-    
-    # Train model
-    model.fit(X_train, y_train)
-    end_time = time.time()
+# Train and Evaluate Text Models
+text_accuracies = []
+for name, model in text_models.items():
+    # Fit the model
+    model.fit(text_X_train, text_y_train)
     
     # Predictions
-    y_pred = model.predict(X_test)
+    text_y_train_pred = model.predict(text_X_train)
+    text_y_test_pred = model.predict(text_X_test)
     
-    # Store performance metrics
-    accuracy = accuracy_score(y_test, y_pred)
-    conf_matrix = confusion_matrix(y_test, y_pred)
-    classification_rep = classification_report(y_test, y_pred, output_dict=True)
+    # Accuracy
+    train_accuracy = accuracy_score(text_y_train, text_y_train_pred)
+    test_accuracy = accuracy_score(text_y_test, text_y_test_pred)
+    text_accuracies.append((name, train_accuracy, test_accuracy))
     
-    # ROC-AUC (for multi-class classification)
-    y_prob = model.predict_proba(X_test)
-    auc_score = roc_auc_score(y_test, y_prob, multi_class='ovr')
+    # Print Classification Reports
+    print(f"=== Classification Report for {name} (Training Data) ===")
+    print(classification_report(text_y_train, text_y_train_pred, zero_division=0))
+    print(f"=== Classification Report for {name} (Testing Data) ===")
+    print(classification_report(text_y_test, text_y_test_pred, zero_division=0))
+    print("-" * 80)
     
-    # Store results
-    results[model_name] = {
-        "Accuracy": accuracy,
-        "Confusion Matrix": conf_matrix,
-        "Classification Report": classification_rep,
-        "Training Time": end_time - start_time,
-        "ROC-AUC": auc_score
-    }
-    print(f"\n{model_name} - Completed Training")
+    # Confusion Matrix
+    ConfusionMatrixDisplay.from_estimator(model, text_X_test, text_y_test, cmap="viridis")
+    plt.title(f"Confusion Matrix - {name} (Text Analysis)")
+    plt.show()
 
-# Print results summary
-for model_name, metrics in results.items():
-    print(f"\n--- {model_name} ---")
-    print(f"Accuracy: {metrics['Accuracy']:.4f}")
-    print(f"Training Time: {metrics['Training Time']:.4f} seconds")
-    print(f"ROC-AUC Score: {metrics['ROC-AUC']:.4f}")
-    print("\nClassification Report:")
-    print(pd.DataFrame(metrics['Classification Report']).T)
+# Accuracy Comparison for Text Analysis
+models, train_acc, test_acc = zip(*text_accuracies)
+plt.figure(figsize=(12, 6))
 
-# Plot ROC curves for comparison
-plt.figure(figsize=(10, 8))
+# Bar plot for testing accuracy
+sns.barplot(x=list(models), y=list(test_acc), palette=sns.color_palette("viridis", len(models)))
+plt.title("Text Analysis Model Accuracy Comparison (Testing Data)")
+plt.ylabel("Accuracy")
+plt.xlabel("Model")
+plt.ylim(0, 1)
 
-for model_name, model in models.items():
-    y_prob = model.predict_proba(X_test)
-    fpr, tpr, _ = roc_curve(y_test, y_prob[:, 1], pos_label=1)  # Assumes binary for plotting
-    plt.plot(fpr, tpr, label=f"{model_name} (AUC = {results[model_name]['ROC-AUC']:.4f})")
+# Annotate barplot with accuracy values
+for i, v in enumerate(test_acc):
+    plt.text(i, v + 0.02, f"{v:.2f}", ha='center', fontsize=10, fontweight='bold')
 
-plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curves Comparison')
-plt.legend()
+plt.show()
+
+# Bar plot for training accuracy
+plt.figure(figsize=(12, 6))
+sns.barplot(x=list(models), y=list(train_acc), palette=sns.color_palette("mako", len(models)))
+plt.title("Text Analysis Model Accuracy Comparison (Training Data)")
+plt.ylabel("Accuracy")
+plt.xlabel("Model")
+plt.ylim(0, 1)
+
+# Annotate barplot with accuracy values
+for i, v in enumerate(train_acc):
+    plt.text(i, v + 0.02, f"{v:.2f}", ha='center', fontsize=10, fontweight='bold')
+
 plt.show()
