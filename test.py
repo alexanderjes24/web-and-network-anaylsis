@@ -1,15 +1,16 @@
-# Import required libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
-from sentence_transformers import SentenceTransformer
 
 # Load dataset
 column_names = [
@@ -19,94 +20,156 @@ column_names = [
 ]
 data = pd.read_csv("wine/wine.data", header=None, names=column_names)
 
-# Generate enhanced synthetic textual descriptions
+# Preprocessing
+X = data.drop(columns=['Class'])
+y = data['Class']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Machine Learning Models
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
+
+# Load dataset
+column_names = [
+    "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash",
+    "Magnesium", "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
+    "Proanthocyanins", "Color_Intensity", "Hue", "OD280/OD315", "Proline"
+]
+data = pd.read_csv("wine\wine.data", header=None, names=column_names)
+
+# Preprocessing
+X = data.drop(columns=['Class'])
+y = data['Class']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Logistic Regression
+logistic_model = LogisticRegression(max_iter=1000, random_state=42)
+logistic_model.fit(X_train_scaled, y_train)
+y_pred_logistic = logistic_model.predict(X_test_scaled)
+print("Logistic Regression Accuracy:", accuracy_score(y_test, y_pred_logistic))
+ConfusionMatrixDisplay.from_estimator(logistic_model, X_test_scaled, y_test, cmap="viridis")
+plt.title("Confusion Matrix - Logistic Regression")
+plt.show()
+
+# Decision Tree
+tree_model = DecisionTreeClassifier(random_state=42)
+tree_model.fit(X_train_scaled, y_train)
+y_pred_tree = tree_model.predict(X_test_scaled)
+print("Decision Tree Accuracy:", accuracy_score(y_test, y_pred_tree))
+ConfusionMatrixDisplay.from_estimator(tree_model, X_test_scaled, y_test, cmap="viridis")
+plt.title("Confusion Matrix - Decision Tree")
+plt.show()
+
+# Random Forest
+forest_model = RandomForestClassifier(n_estimators=100, random_state=42)
+forest_model.fit(X_train_scaled, y_train)
+y_pred_forest = forest_model.predict(X_test_scaled)
+print("Random Forest Accuracy:", accuracy_score(y_test, y_pred_forest))
+ConfusionMatrixDisplay.from_estimator(forest_model, X_test_scaled, y_test, cmap="viridis")
+plt.title("Confusion Matrix - Random Forest")
+plt.show()
+
+# Support Vector Machine (SVM)
+svm_model = SVC(random_state=42)
+svm_model.fit(X_train_scaled, y_train)
+y_pred_svm = svm_model.predict(X_test_scaled)
+print("SVM Accuracy:", accuracy_score(y_test, y_pred_svm))
+ConfusionMatrixDisplay.from_estimator(svm_model, X_test_scaled, y_test, cmap="viridis")
+plt.title("Confusion Matrix - SVM")
+plt.show()
+
+# k-Nearest Neighbors (kNN)
+knn_model = KNeighborsClassifier()
+knn_model.fit(X_train_scaled, y_train)
+y_pred_knn = knn_model.predict(X_test_scaled)
+print("kNN Accuracy:", accuracy_score(y_test, y_pred_knn))
+ConfusionMatrixDisplay.from_estimator(knn_model, X_test_scaled, y_test, cmap="viridis")
+plt.title("Confusion Matrix - kNN")
+plt.show()
+
+accuracies = []
+names, acc = zip(*accuracies)
+plt.figure(figsize=(10, 6))
+ax = sns.barplot(x=list(names), y=list(acc), palette=sns.color_palette("viridis", len(names)))
+plt.title("Model Accuracy Comparison")
+plt.ylabel("Accuracy")
+plt.xlabel("Model")
+plt.ylim(0, 1)
+# ---- Text Analysis for All Models ----
+
+# Create synthetic textual descriptions
 texts = [
-    f"The wine has an alcohol content of {row['Alcohol']:.1f}, malic acid level of {row['Malic_Acid']:.1f}, "
-    f"a total phenols measure of {row['Total_Phenols']:.1f}, and a color intensity rated at {row['Color_Intensity']:.1f}."
+    f"Alcohol: {row['Alcohol']:.1f}, Malic Acid: {row['Malic_Acid']:.1f}, Phenols: {row['Total_Phenols']:.1f}, "
+    f"Color Intensity: {row['Color_Intensity']:.1f}"
     for _, row in data.iterrows()
 ]
 
-# Split data into train and test sets
+vectorizer = TfidfVectorizer()
+text_vectors = vectorizer.fit_transform(texts)
 text_X_train, text_X_test, text_y_train, text_y_test = train_test_split(
-    texts, data['Class'], test_size=0.3, random_state=42
+    text_vectors, y, test_size=0.3, random_state=42
 )
 
-# === Approach 1: TF-IDF Vectorization ===
-# TF-IDF vectorizer
-tfidf_vectorizer = TfidfVectorizer()
-tfidf_X_train = tfidf_vectorizer.fit_transform(text_X_train)
-tfidf_X_test = tfidf_vectorizer.transform(text_X_test)
+# Logistic Regression for Text Analysis
+text_logistic_model = LogisticRegression(max_iter=1000, random_state=42)
+text_logistic_model.fit(text_X_train, text_y_train)
+text_y_pred_logistic = text_logistic_model.predict(text_X_test)
+print("Text Analysis - Logistic Regression Accuracy:", accuracy_score(text_y_test, text_y_pred_logistic))
+ConfusionMatrixDisplay.from_estimator(text_logistic_model, text_X_test, text_y_test, cmap="viridis")
+plt.title("Confusion Matrix - Logistic Regression (Text Analysis)")
+plt.show()
 
-# Models to test
-models = {
-    "Naive Bayes": MultinomialNB(),
-    "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
-    "SVM (Linear Kernel)": SVC(kernel='linear', random_state=42)
-}
+# Decision Tree for Text Analysis
+text_tree_model = DecisionTreeClassifier(random_state=42)
+text_tree_model.fit(text_X_train, text_y_train)
+text_y_pred_tree = text_tree_model.predict(text_X_test)
+print("Text Analysis - Decision Tree Accuracy:", accuracy_score(text_y_test, text_y_pred_tree))
+ConfusionMatrixDisplay.from_estimator(text_tree_model, text_X_test, text_y_test, cmap="viridis")
+plt.title("Confusion Matrix - Decision Tree (Text Analysis)")
+plt.show()
 
-# Train and evaluate models using TF-IDF
-tfidf_accuracies = []
-for name, model in models.items():
-    model.fit(tfidf_X_train, text_y_train)
-    y_train_pred = model.predict(tfidf_X_train)
-    y_test_pred = model.predict(tfidf_X_test)
+# Random Forest for Text Analysis
+text_forest_model = RandomForestClassifier(n_estimators=100, random_state=42)
+text_forest_model.fit(text_X_train, text_y_train)
+text_y_pred_forest = text_forest_model.predict(text_X_test)
+print("Text Analysis - Random Forest Accuracy:", accuracy_score(text_y_test, text_y_pred_forest))
+ConfusionMatrixDisplay.from_estimator(text_forest_model, text_X_test, text_y_test, cmap="viridis")
+plt.title("Confusion Matrix - Random Forest (Text Analysis)")
+plt.show()
 
-    # Accuracy scores
-    train_accuracy = accuracy_score(text_y_train, y_train_pred)
-    test_accuracy = accuracy_score(text_y_test, y_test_pred)
-    tfidf_accuracies.append((name, train_accuracy, test_accuracy))
+# Support Vector Machine (SVM) for Text Analysis
+text_svm_model = SVC(random_state=42)
+text_svm_model.fit(text_X_train, text_y_train)
+text_y_pred_svm = text_svm_model.predict(text_X_test)
+print("Text Analysis - SVM Accuracy:", accuracy_score(text_y_test, text_y_pred_svm))
+ConfusionMatrixDisplay.from_estimator(text_svm_model, text_X_test, text_y_test, cmap="viridis")
+plt.title("Confusion Matrix - SVM (Text Analysis)")
+plt.show()
 
-    # Classification report and confusion matrix
-    print(f"=== Classification Report for {name} (TF-IDF) ===")
-    print(f"Training Accuracy: {train_accuracy:.2f}")
-    print(f"Testing Accuracy: {test_accuracy:.2f}")
-    print(classification_report(text_y_test, y_test_pred, zero_division=0))
-    ConfusionMatrixDisplay.from_estimator(model, tfidf_X_test, text_y_test, cmap="viridis")
-    plt.title(f"Confusion Matrix - {name} (TF-IDF)")
-    plt.show()
-
-# === Approach 2: Pre-trained Sentence Embeddings ===
-# Load pre-trained model for embeddings
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-embedding_X_train = embedding_model.encode(text_X_train)
-embedding_X_test = embedding_model.encode(text_X_test)
-
-# Train and evaluate models using Sentence Embeddings
-embedding_accuracies = []
-for name, model in models.items():
-    model.fit(embedding_X_train, text_y_train)
-    y_train_pred = model.predict(embedding_X_train)
-    y_test_pred = model.predict(embedding_X_test)
-
-    # Accuracy scores
-    train_accuracy = accuracy_score(text_y_train, y_train_pred)
-    test_accuracy = accuracy_score(text_y_test, y_test_pred)
-    embedding_accuracies.append((name, train_accuracy, test_accuracy))
-
-    # Classification report and confusion matrix
-    print(f"=== Classification Report for {name} (Embeddings) ===")
-    print(f"Training Accuracy: {train_accuracy:.2f}")
-    print(f"Testing Accuracy: {test_accuracy:.2f}")
-    print(classification_report(text_y_test, y_test_pred, zero_division=0))
-    ConfusionMatrixDisplay.from_estimator(model, embedding_X_test, text_y_test, cmap="plasma")
-    plt.title(f"Confusion Matrix - {name} (Embeddings)")
-    plt.show()
-
-# === Accuracy Comparison ===
-# Combine accuracies
-combined_accuracies = {
-    "TF-IDF": tfidf_accuracies,
-    "Embeddings": embedding_accuracies
-}
-
-for method, accuracies in combined_accuracies.items():
-    models, train_acc, test_acc = zip(*accuracies)
-    plt.figure(figsize=(12, 6))
-    sns.barplot(x=list(models), y=list(test_acc), palette="viridis")
-    plt.title(f"{method} Model Accuracy Comparison (Testing Data)")
-    plt.ylabel("Accuracy")
-    plt.xlabel("Model")
-    plt.ylim(0, 1)
-    for i, v in enumerate(test_acc):
-        plt.text(i, v + 0.02, f"{v:.2f}", ha='center', fontsize=10, fontweight='bold')
-    plt.show()
+# k-Nearest Neighbors (kNN) for Text Analysis
+text_knn_model = KNeighborsClassifier()
+text_knn_model.fit(text_X_train, text_y_train)
+text_y_pred_knn = text_knn_model.predict(text_X_test)
+print("Text Analysis - kNN Accuracy:", accuracy_score(text_y_test, text_y_pred_knn))
+ConfusionMatrixDisplay.from_estimator(text_knn_model, text_X_test, text_y_test, cmap="viridis")
+plt.title("Confusion Matrix - kNN (Text Analysis)")
+plt.show()

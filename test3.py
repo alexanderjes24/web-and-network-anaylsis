@@ -11,14 +11,49 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-# Load dataset
+#for text pre-processing
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import SnowballStemmer
+from nltk.corpus import wordnet
+from nltk.stem import WordNetLemmatizer
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+
+#for model-building
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+
+# bag of words
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+# Load dataset and add name to column
 column_names = [
     "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash",
     "Magnesium", "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
     "Proanthocyanins", "Color_Intensity", "Hue", "OD280/OD315", "Proline"
 ]
+
 data = pd.read_csv("wine/wine.data", header=None, names=column_names)
+
+x = data['Class'].value_counts()
+print(x)
+
+sns.barplot(x=x.index, y=x.values)
+plt.xlabel('Class')
+plt.ylabel('Count')
+plt.title('Class Distribution')
+plt.show()
+
 
 # Preprocessing
 X = data.drop(columns=['Class'])
@@ -96,8 +131,8 @@ text_models = {
     "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs'),
     "Decision Tree": DecisionTreeClassifier(random_state=42),
     "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
-    "SVM": SVC(random_state=42),
-    "kNN": KNeighborsClassifier()
+    
+
 }
 
 # Train and evaluate each model on text data

@@ -1,85 +1,112 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-import matplotlib.pyplot as plt
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report, ConfusionMatrixDisplay
 
-# Load the dataset
-file_path = 'wine\wine.data'
-wine_df = pd.read_csv(file_path, header=None)
-
-# Define column names based on the standard Wine dataset attributes
+# Load dataset
 column_names = [
-    "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash", "Magnesium",
-    "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols", "Proanthocyanins",
-    "Color_Intensity", "Hue", "OD280/OD315", "Proline"
+    "Class", "Alcohol", "Malic_Acid", "Ash", "Alkalinity_of_Ash",
+    "Magnesium", "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
+    "Proanthocyanins", "Color_Intensity", "Hue", "OD280/OD315", "Proline"
 ]
-wine_df.columns = column_names
+data = pd.read_csv("wine/wine.data", header=None, names=column_names)
 
-# Data Exploration
-print("Dataset Overview:")
-print(wine_df.info())
-print("Summary Statistics:")
-print(wine_df.describe())
+# Preprocessing
+X = data.drop(columns=['Class'])
+y = data['Class']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Check for missing values
-print("Missing Values:")
-print(wine_df.isnull().sum())
-
-# Separate features and target
-X = wine_df.drop("Class", axis=1)
-y = wine_df["Class"]
-
-# Normalize the data
+# Feature Scaling
 scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-# Train-Test Split
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+# Initialize models
+logistic_model = LogisticRegression(max_iter=1000, random_state=42)
+tree_model = DecisionTreeClassifier(random_state=42)
+forest_model = RandomForestClassifier(n_estimators=100, random_state=42)
+svm_model = SVC(random_state=42)
+knn_model = KNeighborsClassifier()
 
-# Train a Random Forest Classifier
-rf_model = RandomForestClassifier(random_state=42)
-rf_model.fit(X_train, y_train)
+# Train and evaluate Logistic Regression
+logistic_model.fit(X_train_scaled, y_train)
+y_pred_logistic = logistic_model.predict(X_test_scaled)
+logistic_accuracy = accuracy_score(y_test, y_pred_logistic)
+logistic_report = classification_report(y_test, y_pred_logistic, output_dict=True)
 
-# Evaluate the model
-y_pred = rf_model.predict(X_test)
-print("Classification Report:")
-print(classification_report(y_test, y_pred))
+# Train and evaluate Decision Tree
+tree_model.fit(X_train_scaled, y_train)
+y_pred_tree = tree_model.predict(X_test_scaled)
+tree_accuracy = accuracy_score(y_test, y_pred_tree)
+tree_report = classification_report(y_test, y_pred_tree, output_dict=True)
 
-# Confusion Matrix
-conf_matrix = confusion_matrix(y_test, y_pred)
-print("Confusion Matrix:")
-print(conf_matrix)
+# Train and evaluate Random Forest
+forest_model.fit(X_train_scaled, y_train)
+y_pred_forest = forest_model.predict(X_test_scaled)
+forest_accuracy = accuracy_score(y_test, y_pred_forest)
+forest_report = classification_report(y_test, y_pred_forest, output_dict=True)
 
-# Visualize Confusion Matrix
-plt.figure(figsize=(6, 6))
-plt.imshow(conf_matrix, cmap="Blues")
-plt.title("Confusion Matrix")
-plt.colorbar()
-plt.xticks(ticks=np.arange(len(np.unique(y))), labels=np.unique(y))
-plt.yticks(ticks=np.arange(len(np.unique(y))), labels=np.unique(y))
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
+# Train and evaluate SVM
+svm_model.fit(X_train_scaled, y_train)
+y_pred_svm = svm_model.predict(X_test_scaled)
+svm_accuracy = accuracy_score(y_test, y_pred_svm)
+svm_report = classification_report(y_test, y_pred_svm, output_dict=True)
 
-# Annotate the confusion matrix
-for i in range(conf_matrix.shape[0]):
-    for j in range(conf_matrix.shape[1]):
-        plt.text(j, i, conf_matrix[i, j], ha="center", va="center", color="red")
+# Train and evaluate k-Nearest Neighbors
+knn_model.fit(X_train_scaled, y_train)
+y_pred_knn = knn_model.predict(X_test_scaled)
+knn_accuracy = accuracy_score(y_test, y_pred_knn)
+knn_report = classification_report(y_test, y_pred_knn, output_dict=True)
 
-plt.show()
+# Create a summary table for results
+results_df = pd.DataFrame({
+    "Model": ["Logistic Regression", "Decision Tree", "Random Forest", "SVM", "kNN"],
+    "Accuracy": [logistic_accuracy, tree_accuracy, forest_accuracy, svm_accuracy, knn_accuracy],
+    "Precision": [
+        logistic_report["weighted avg"]["precision"],
+        tree_report["weighted avg"]["precision"],
+        forest_report["weighted avg"]["precision"],
+        svm_report["weighted avg"]["precision"],
+        knn_report["weighted avg"]["precision"],
+    ],
+    "Recall": [
+        logistic_report["weighted avg"]["recall"],
+        tree_report["weighted avg"]["recall"],
+        forest_report["weighted avg"]["recall"],
+        svm_report["weighted avg"]["recall"],
+        knn_report["weighted avg"]["recall"],
+    ],
+    "F1-Score": [
+        logistic_report["weighted avg"]["f1-score"],
+        tree_report["weighted avg"]["f1-score"],
+        forest_report["weighted avg"]["f1-score"],
+        svm_report["weighted avg"]["f1-score"],
+        knn_report["weighted avg"]["f1-score"],
+    ],
+})
 
-# Feature Importance Visualization
-importances = rf_model.feature_importances_
-features = X.columns
-sorted_indices = np.argsort(importances)[::-1]
+# Print the table in the terminal
+print("\n=== Model Performance Summary ===")
+print(results_df.to_string(index=False))
 
+# Accuracy Comparison Bar Plot
 plt.figure(figsize=(10, 6))
-plt.bar(range(len(features)), importances[sorted_indices], align="center")
-plt.xticks(range(len(features)), [features[i] for i in sorted_indices], rotation=45, ha="right")
-plt.title("Feature Importance")
-plt.xlabel("Features")
-plt.ylabel("Importance")
-plt.tight_layout()
+sns.barplot(x=results_df["Model"], y=results_df["Accuracy"], palette="viridis")
+plt.title("Model Accuracy Comparison")
+plt.ylabel("Accuracy")
+plt.xlabel("Model")
+plt.ylim(0, 1)
+
+# Annotate each bar with its accuracy value
+for i, acc in enumerate(results_df["Accuracy"]):
+    plt.text(i, acc + 0.02, f"{acc:.2f}", ha="center", fontsize=10, fontweight="bold")
+
 plt.show()
